@@ -2,7 +2,7 @@
   "name": "eMemory",
   "short_name": "eMemory",
   "description": "A memory training Progressive Web App",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#4a90e2",

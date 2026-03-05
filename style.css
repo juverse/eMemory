@@ -193,66 +193,6 @@ footer {
   font-size: 0.875rem;
 }
 
-/* Bottom navigation bar */
-:root {
-  --bottom-nav-height: 60px;
-}
-
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  background-color: #ffffff;
-  border-top: 1px solid #d0d9e4;
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  height: var(--bottom-nav-height);
-  z-index: 1000;
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.bottom-nav__item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  text-decoration: none;
-  color: #888888;
-  font-size: 0.7rem;
-  gap: 2px;
-  padding: 6px 0;
-  transition: color 0.2s;
-}
-
-.bottom-nav__item:hover {
-  color: #4a90e2;
-}
-
-.bottom-nav__item.active {
-  color: #4a90e2;
-  background-color: #e8f0fb;
-  border-radius: 12px;
-  font-weight: 600;
-}
-
-.bottom-nav__icon {
-  font-size: 1.5rem;
-  line-height: 1;
-}
-
-.bottom-nav__label {
-  font-size: 0.65rem;
-  letter-spacing: 0.02em;
-}
-
-/* Add bottom padding so content isn't hidden behind the nav bar */
-body {
-  padding-bottom: var(--bottom-nav-height);
-}
-
 /* Deck list */
 .deck-list {
   list-style: none;
@@ -320,7 +260,7 @@ body {
 
 .fab {
   position: fixed;
-  bottom: calc(var(--bottom-nav-height) + 16px);
+  bottom: 16px;
   right: 20px;
   width: 56px;
   height: 56px;

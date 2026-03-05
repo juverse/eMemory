@@ -212,6 +212,14 @@ function speak(text, onEnd) {
   utterance.onend = () => { if (onEnd) onEnd(); };
   utterance.onerror = () => { if (onEnd) onEnd(); };
   synth.speak(utterance);
+  // Enable the voice button during TTS so the user can tap to interrupt
+  if (SpeechRecognitionAPI) {
+    const voiceBtn = document.getElementById('voice-btn');
+    if (voiceBtn) {
+      voiceBtn.disabled = false;
+      voiceBtn.classList.remove('study-voice-btn--disabled');
+    }
+  }
 }
 
 function stopSpeaking() {
@@ -220,17 +228,43 @@ function stopSpeaking() {
 
 const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-function createRecognition(onResult, onEnd) {
+function createRecognition(onResult, onEnd, onInterim) {
   if (!SpeechRecognitionAPI) return null;
   const rec = new SpeechRecognitionAPI();
   rec.continuous = false;
-  rec.interimResults = false;
+  rec.interimResults = true;
+
+  let resultHandled = false;
+  let lastError = null;
+
   rec.onresult = (e) => {
-    const transcript = e.results[0][0].transcript;
-    if (onResult) onResult(transcript);
+    let finalText = '';
+    let interimText = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) {
+        finalText += e.results[i][0].transcript;
+      } else {
+        interimText += e.results[i][0].transcript;
+      }
+    }
+    if (finalText) {
+      resultHandled = true;
+      if (onResult) onResult(finalText);
+    } else if (interimText && onInterim) {
+      onInterim(interimText);
+    }
   };
-  rec.onend = () => { if (onEnd) onEnd(null); };
-  rec.onerror = (e) => { if (onEnd) onEnd(e.error); };
+
+  rec.onerror = (e) => {
+    lastError = e.error;
+  };
+
+  rec.onend = () => {
+    if (!resultHandled) {
+      if (onEnd) onEnd(lastError);
+    }
+  };
+
   return rec;
 }
 
@@ -401,15 +435,21 @@ function setupVoiceButton() {
     return;
   }
 
-  voiceBtn.addEventListener('click', () => {
-    if (!appState.inputEnabled) return;
+  const textInput = document.getElementById('text-input');
 
+  voiceBtn.addEventListener('click', () => {
+    // Allow clicking to stop an active recording session
     if (appState.isListening) {
       if (appState.recognition) appState.recognition.stop();
       return;
     }
 
+    // Allow clicking when input is enabled OR when TTS is playing (to interrupt it)
+    const ttsPlaying = synth && synth.speaking;
+    if (!appState.inputEnabled && !ttsPlaying) return;
+
     stopSpeaking();
+
     appState.isListening = true;
     voiceBtn.classList.add('study-voice-btn--listening');
     voiceBtn.textContent = '⏹';
@@ -422,7 +462,7 @@ function setupVoiceButton() {
         voiceBtn.classList.remove('study-voice-btn--listening');
         voiceBtn.textContent = '🎤';
         voiceBtn.setAttribute('aria-label', 'Press to speak');
-        document.getElementById('text-input').value = transcript;
+        textInput.value = transcript;
         setStatus('');
         handleUserMessage(transcript);
       },
@@ -431,16 +471,34 @@ function setupVoiceButton() {
         voiceBtn.classList.remove('study-voice-btn--listening');
         voiceBtn.textContent = '🎤';
         voiceBtn.setAttribute('aria-label', 'Press to speak');
-        if (error && error !== 'no-speech') {
-          setStatus(`Speech error: ${error}`);
+        textInput.value = '';
+        if (error === 'not-allowed' || error === 'service-not-allowed') {
+          setStatus('⚠️ Microphone access denied. Please allow microphone access.');
+        } else if (error === 'audio-capture') {
+          setStatus('⚠️ No microphone found.');
+        } else if (error === 'network') {
+          setStatus('⚠️ Network error during speech recognition.');
+        } else if (error && error !== 'no-speech' && error !== 'aborted') {
+          setStatus(`⚠️ Speech error: ${error}`);
         } else {
           setStatus('');
         }
         if (!appState.inputEnabled) setInputEnabled(true);
+      },
+      (interimText) => {
+        textInput.value = interimText;
       }
     );
 
-    appState.recognition.start();
+    try {
+      appState.recognition.start();
+    } catch (err) {
+      appState.isListening = false;
+      voiceBtn.classList.remove('study-voice-btn--listening');
+      voiceBtn.textContent = '🎤';
+      voiceBtn.setAttribute('aria-label', 'Press to speak');
+      setStatus(`⚠️ Could not start recording: ${err.message}`);
+    }
   });
 }
 

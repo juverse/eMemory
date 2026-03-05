@@ -16,10 +16,19 @@
 
     <main>
       <h2>🪤 Trap</h2>
-      <p>Your trap content will appear here.</p>
+      <p id="empty-state" class="empty-state">No Anki decks added yet. Tap ＋ to import a deck.</p>
+      <ul id="deck-list" class="deck-list" aria-label="Anki decks"></ul>
     </main>
 
-    <button type="button" class="fab" aria-label="Add trap item">＋</button>
+    <input
+      type="file"
+      id="anki-file-input"
+      accept=".apkg,.txt,.tsv,.csv"
+      style="display:none"
+      aria-hidden="true"
+    />
+
+    <button type="button" class="fab" aria-label="Add Anki deck">＋</button>
 
     <nav class="bottom-nav">
       <a href="stats.html" class="bottom-nav__item" aria-label="Stats">
@@ -37,5 +46,6 @@
     </nav>
 
     <script src="app.js"></script>
+    <script src="trap.js"></script>
   </body>
 </html>

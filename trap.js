@@ -1,0 +1,233 @@
+// trap.js – Anki deck management for the Trap page
+
+const DB_NAME = 'eMemory';
+const DB_VERSION = 1;
+const STORE_DECKS = 'decks';
+
+// ── IndexedDB helpers ─────────────────────────────────────────────────────────
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains(STORE_DECKS)) {
+        db.createObjectStore(STORE_DECKS, { keyPath: 'id', autoIncrement: true });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function saveDeck(deck) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_DECKS, 'readwrite');
+    const req = tx.objectStore(STORE_DECKS).add(deck);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function loadDecks() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_DECKS, 'readonly');
+    const req = tx.objectStore(STORE_DECKS).getAll();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function deleteDeck(id) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_DECKS, 'readwrite');
+    const req = tx.objectStore(STORE_DECKS).delete(id);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+// ── Script loader ─────────────────────────────────────────────────────────────
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) {
+      resolve();
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = src;
+    script.onload = resolve;
+    script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
+    document.head.appendChild(script);
+  });
+}
+
+// ── File parsing ──────────────────────────────────────────────────────────────
+
+async function parseApkg(file) {
+  await loadScript('./vendor/jszip.min.js');
+
+  const zip = await JSZip.loadAsync(file);
+
+  // .apkg files contain either collection.anki21 (newer) or collection.anki2 (older)
+  const dbEntry = zip.file('collection.anki21') || zip.file('collection.anki2');
+  if (!dbEntry) {
+    throw new Error('Invalid .apkg file: missing collection database.');
+  }
+
+  const dbBuffer = await dbEntry.async('arraybuffer');
+
+  await loadScript('./vendor/sql-wasm.js');
+  const SQL = await initSqlJs({
+    locateFile: (filename) => `./vendor/${filename}`
+  });
+
+  const db = new SQL.Database(new Uint8Array(dbBuffer));
+
+  // Read deck name from the col table
+  let deckName = file.name.replace(/\.apkg$/i, '');
+  try {
+    const colRows = db.exec('SELECT decks FROM col LIMIT 1');
+    if (colRows.length > 0 && colRows[0].values.length > 0) {
+      const decksJson = JSON.parse(colRows[0].values[0][0]);
+      const entry = Object.values(decksJson).find(
+        (d) => String(d.id) !== '1' && d.name !== 'Default'
+      );
+      if (entry) deckName = entry.name;
+    }
+  } catch (_) {
+    // Fall back to the file name
+  }
+
+  // Read cards from the notes table (fields are separated by \x1f)
+  const cards = [];
+  try {
+    const notesRows = db.exec('SELECT flds FROM notes');
+    if (notesRows.length > 0) {
+      for (const [flds] of notesRows[0].values) {
+        const fields = String(flds).split('\x1f');
+        cards.push({ front: fields[0] || '', back: fields[1] || '' });
+      }
+    }
+  } catch (_) {
+    // Notes table may not exist for every deck format
+  }
+
+  db.close();
+
+  return { name: deckName, cards, importedAt: new Date().toISOString() };
+}
+
+function parseCsvOrTsv(text, fileName) {
+  const lines = text.split('\n').filter((l) => l.trim() && !l.startsWith('#'));
+  const ext = fileName.split('.').pop().toLowerCase();
+  const separator = ext === 'tsv' ? '\t' : ext === 'csv' ? ',' : (lines[0] || '').includes('\t') ? '\t' : ',';
+  const cards = lines
+    .map((line) => {
+      const parts = line.split(separator);
+      return { front: (parts[0] || '').trim(), back: (parts[1] || '').trim() };
+    })
+    .filter((c) => c.front);
+  return {
+    name: fileName.replace(/\.(txt|csv|tsv)$/i, ''),
+    cards,
+    importedAt: new Date().toISOString()
+  };
+}
+
+async function parseFile(file) {
+  if (file.name.toLowerCase().endsWith('.apkg')) {
+    return parseApkg(file);
+  }
+  const text = await file.text();
+  return parseCsvOrTsv(text, file.name);
+}
+
+// ── UI helpers ────────────────────────────────────────────────────────────────
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function renderDeckList(decks) {
+  const list = document.getElementById('deck-list');
+  const empty = document.getElementById('empty-state');
+
+  if (decks.length === 0) {
+    empty.style.display = 'block';
+    list.innerHTML = '';
+    return;
+  }
+
+  empty.style.display = 'none';
+  list.innerHTML = decks
+    .map(
+      (deck) => `
+    <li class="deck-item" data-id="${deck.id}">
+      <div class="deck-item__info">
+        <span class="deck-item__name">${escapeHtml(deck.name)}</span>
+        <span class="deck-item__count">${deck.cards.length} card${deck.cards.length !== 1 ? 's' : ''}</span>
+      </div>
+      <button
+        type="button"
+        class="deck-item__delete"
+        aria-label="Delete deck ${escapeHtml(deck.name)}"
+        data-id="${deck.id}"
+      >🗑️</button>
+    </li>`
+    )
+    .join('');
+
+  // Single delegated listener on the list to avoid re-attaching per item
+  list.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.deck-item__delete');
+    if (!btn) return;
+    const id = Number(btn.dataset.id);
+    await deleteDeck(id);
+    await refreshDeckList();
+  }, { once: true });
+}
+
+async function refreshDeckList() {
+  const decks = await loadDecks();
+  renderDeckList(decks);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', async () => {
+  await refreshDeckList();
+
+  const fab = document.querySelector('.fab');
+  const fileInput = document.getElementById('anki-file-input');
+
+  fab.addEventListener('click', () => fileInput.click());
+
+  fileInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    fab.disabled = true;
+    fab.textContent = '⏳';
+    fab.setAttribute('aria-label', 'Importing deck…');
+
+    try {
+      const deck = await parseFile(file);
+      await saveDeck(deck);
+      await refreshDeckList();
+    } catch (err) {
+      alert(`Failed to import deck:\n${err.message}`);
+    } finally {
+      fab.disabled = false;
+      fab.textContent = '＋';
+      fab.setAttribute('aria-label', 'Add Anki deck');
+      fileInput.value = '';
+    }
+  });
+});

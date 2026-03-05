@@ -69,7 +69,8 @@ header h1 {
 }
 
 .settings-form input[type="password"],
-.settings-form input[type="text"] {
+.settings-form input[type="text"],
+.settings-form select {
   width: 100%;
   padding: 0.6rem 0.75rem;
   font-size: 1rem;
@@ -82,8 +83,54 @@ header h1 {
 }
 
 .settings-form input[type="password"]:focus,
-.settings-form input[type="text"]:focus {
+.settings-form input[type="text"]:focus,
+.settings-form select:focus {
   border-color: #4a90e2;
+}
+
+.settings-form select:disabled {
+  background-color: #f5f7fa;
+  color: #888888;
+}
+
+.settings-model-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.settings-model-row select {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-fetch-btn {
+  padding: 0.6rem 0.85rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background-color: #e8f0fb;
+  color: #4a90e2;
+  border: 1px solid #c0d3f0;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+}
+
+.settings-fetch-btn:hover {
+  background-color: #d0e4f7;
+}
+
+.settings-fetch-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.settings-fetch-msg {
+  font-size: 0.85rem;
+  font-weight: 400;
+  min-height: 1.2em;
 }
 
 .settings-save-btn {
@@ -124,7 +171,6 @@ header h1 {
 }
 
 .settings-saved-msg {
-  color: #2e7d32;
   font-size: 0.9rem;
   font-weight: 600;
   display: none;

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="eMemory – Settings" />
+    <meta name="theme-color" content="#4a90e2" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="stylesheet" href="style.css" />
+    <title>eMemory – Settings</title>
+  </head>
+  <body>
+    <header>
+      <h1>eMemory</h1>
+    </header>
+
+    <main>
+      <a href="index.html" class="settings-back-btn" aria-label="Go back">← Back</a>
+      <h2>⚙️ Settings</h2>
+
+      <form class="settings-form" id="settings-form" autocomplete="off">
+        <label for="llm-api-key">
+          LLM API Key
+          <input
+            type="password"
+            id="llm-api-key"
+            name="llm-api-key"
+            placeholder="Enter your API key…"
+            autocomplete="new-password"
+          />
+          <small style="color:#888;font-weight:400;">Stored locally on this device only.</small>
+        </label>
+
+        <button type="submit" class="settings-save-btn">Save</button>
+        <span class="settings-saved-msg" id="saved-msg" aria-live="polite">✓ Saved successfully!</span>
+      </form>
+    </main>
+
+    <script src="app.js"></script>
+    <script src="settings.js"></script>
+  </body>
+</html>

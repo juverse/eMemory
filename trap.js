@@ -174,19 +174,12 @@ function renderDeckList(decks) {
         <span class="deck-item__name">${escapeHtml(deck.name)}</span>
         <span class="deck-item__count">${deck.cards.length} card${deck.cards.length !== 1 ? 's' : ''}</span>
       </div>
-      <div class="deck-item__actions">
-        <a
-          href="study.html?deckId=${deck.id}"
-          class="deck-item__study"
-          aria-label="Study ${escapeHtml(deck.name)} with AI"
-        >🎙️</a>
-        <button
-          type="button"
-          class="deck-item__delete"
-          aria-label="Delete deck ${escapeHtml(deck.name)}"
-          data-id="${deck.id}"
-        >🗑️</button>
-      </div>
+      <button
+        type="button"
+        class="deck-item__delete"
+        aria-label="Delete deck ${escapeHtml(deck.name)}"
+        data-id="${deck.id}"
+      >🗑️</button>
     </li>`
     )
     .join('');

@@ -1,8 +1,9 @@
 // trap.js – Anki deck management for the Trap page
 
 const DB_NAME = 'eMemory';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_DECKS = 'decks';
+const STORE_PROGRESS = 'progress';
 
 // ── IndexedDB helpers ─────────────────────────────────────────────────────────
 
@@ -13,6 +14,9 @@ function openDB() {
       const db = event.target.result;
       if (!db.objectStoreNames.contains(STORE_DECKS)) {
         db.createObjectStore(STORE_DECKS, { keyPath: 'id', autoIncrement: true });
+      }
+      if (!db.objectStoreNames.contains(STORE_PROGRESS)) {
+        db.createObjectStore(STORE_PROGRESS, { keyPath: 'id' });
       }
     };
     request.onsuccess = () => resolve(request.result);
@@ -166,14 +170,23 @@ function renderDeckList(decks) {
   }
 
   empty.style.display = 'none';
-  list.innerHTML = decks
+  // Replace list node to clear any old event listeners before re-attaching
+  const newList = list.cloneNode(false);
+  list.parentNode.replaceChild(newList, list);
+
+  newList.innerHTML = decks
     .map(
       (deck) => `
     <li class="deck-item" data-id="${deck.id}">
-      <div class="deck-item__info">
+      <button
+        type="button"
+        class="deck-item__info"
+        aria-label="Study deck ${escapeHtml(deck.name)}"
+        data-study-id="${deck.id}"
+      >
         <span class="deck-item__name">${escapeHtml(deck.name)}</span>
         <span class="deck-item__count">${deck.cards.length} card${deck.cards.length !== 1 ? 's' : ''}</span>
-      </div>
+      </button>
       <button
         type="button"
         class="deck-item__delete"
@@ -184,14 +197,21 @@ function renderDeckList(decks) {
     )
     .join('');
 
-  // Single delegated listener on the list to avoid re-attaching per item
-  list.addEventListener('click', async (e) => {
-    const btn = e.target.closest('.deck-item__delete');
-    if (!btn) return;
-    const id = Number(btn.dataset.id);
-    await deleteDeck(id);
-    await refreshDeckList();
-  }, { once: true });
+  // Single delegated listener on the list
+  newList.addEventListener('click', async (e) => {
+    const deleteBtn = e.target.closest('.deck-item__delete');
+    if (deleteBtn) {
+      const id = Number(deleteBtn.dataset.id);
+      await deleteDeck(id);
+      await refreshDeckList();
+      return;
+    }
+    const studyBtn = e.target.closest('.deck-item__info');
+    if (studyBtn) {
+      const id = Number(studyBtn.dataset.studyId);
+      window.location.href = `study.html?deckId=${id}`;
+    }
+  });
 }
 
 async function refreshDeckList() {

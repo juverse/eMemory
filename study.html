@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="eMemory – Study" />
+    <meta name="theme-color" content="#4a90e2" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="stylesheet" href="style.css" />
+    <title>eMemory – Study</title>
+  </head>
+  <body>
+    <header>
+      <a href="trap.html" class="header-back-btn" aria-label="Back to decks">←</a>
+      <h1>Study</h1>
+      <a href="settings.html" class="header-settings-btn" aria-label="Settings">⚙️</a>
+    </header>
+
+    <main>
+      <!-- State: loading -->
+      <div id="state-loading" class="study-state">
+        <p class="study-center-msg">⏳ Loading…</p>
+      </div>
+
+      <!-- State: API key not configured -->
+      <div id="state-no-api" class="study-state" style="display:none">
+        <p class="study-center-msg">
+          ⚠️ No LLM API key configured.<br />
+          <a href="settings.html">Open Settings</a> to add one.
+        </p>
+      </div>
+
+      <!-- State: all cards done -->
+      <div id="state-done" class="study-state" style="display:none">
+        <p class="study-center-msg">🎉 All cards reviewed for today!</p>
+        <a href="trap.html" class="study-done-btn">← Back to Decks</a>
+      </div>
+
+      <!-- State: active study session -->
+      <div id="state-study" class="study-state" style="display:none">
+        <div class="study-progress">
+          <span id="study-progress-text" class="study-progress__text">Card 1 / 1</span>
+          <div class="study-progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+            <div id="study-progress-fill" class="study-progress-bar__fill"></div>
+          </div>
+        </div>
+
+        <div class="study-card" id="study-card">
+          <p class="study-card__label">Front</p>
+          <div class="study-card__front" id="card-front"></div>
+          <div class="study-card__divider" id="card-separator" style="display:none" aria-hidden="true"></div>
+          <p class="study-card__label study-card__label--back" id="card-back-label" style="display:none">Back</p>
+          <div class="study-card__back" id="card-back" style="display:none"></div>
+        </div>
+
+        <div
+          class="study-conversation"
+          id="study-conversation"
+          aria-live="polite"
+          aria-label="Conversation"
+        ></div>
+
+        <div class="study-input-area">
+          <button
+            type="button"
+            id="voice-btn"
+            class="study-voice-btn"
+            aria-label="Tap to speak"
+          >🎤</button>
+          <input
+            type="text"
+            id="text-input"
+            class="study-text-input"
+            placeholder="Type your answer…"
+            autocomplete="off"
+            aria-label="Your answer"
+          />
+          <button
+            type="button"
+            id="send-btn"
+            class="study-send-btn"
+            aria-label="Send"
+          >➤</button>
+        </div>
+
+        <p id="study-status" class="study-status" aria-live="polite"></p>
+      </div>
+    </main>
+
+    <script src="app.js"></script>
+    <script src="study.js"></script>
+  </body>
+</html>

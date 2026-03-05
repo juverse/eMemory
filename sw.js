@@ -1,13 +1,15 @@
-const CACHE_NAME = 'ememory-cache-v2';
+const CACHE_NAME = 'ememory-cache-v3';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './trap.html',
   './library.html',
   './stats.html',
+  './settings.html',
   './style.css',
   './app.js',
   './trap.js',
+  './settings.js',
   './manifest.json',
   './vendor/jszip.min.js',
   './vendor/sql-wasm.js',

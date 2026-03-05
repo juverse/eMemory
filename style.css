@@ -348,3 +348,283 @@ body {
   transform: scale(0.92);
   box-shadow: 0 2px 8px rgba(74, 144, 226, 0.4);
 }
+
+/* ── Header back button (study page) ───────────────────────────────────────── */
+
+.header-back-btn {
+  position: absolute;
+  top: 50%;
+  left: 1rem;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  line-height: 1;
+  transition: background-color 0.2s;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-back-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* ── Study page layout ──────────────────────────────────────────────────────── */
+
+.study-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  /* Fill viewport minus the fixed header (~64 px) */
+  height: calc(100vh - 64px);
+  overflow: hidden;
+}
+
+.study-warning {
+  background-color: #fff8e1;
+  border: 1px solid #ffe082;
+  border-radius: 10px;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.9rem;
+  color: #5d4037;
+  flex-shrink: 0;
+}
+
+.study-warning a {
+  color: #4a90e2;
+  font-weight: 600;
+}
+
+/* ── Card context panel ─────────────────────────────────────────────────────── */
+
+.card-panel {
+  background-color: #ffffff;
+  border: 1px solid #d0d9e4;
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  flex-shrink: 0;
+}
+
+.card-panel__summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #333333;
+  user-select: none;
+}
+
+.card-panel__summary::-webkit-details-marker {
+  display: none;
+}
+
+.card-panel__badge {
+  margin-left: auto;
+  background-color: #e8f0fb;
+  color: #4a90e2;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.card-panel__body {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.card-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.card-field__label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #888888;
+}
+
+.card-field__text {
+  font-size: 0.9rem;
+  color: #333333;
+  line-height: 1.5;
+}
+
+/* ── Chat messages ──────────────────────────────────────────────────────────── */
+
+.chat-container {
+  flex: 1;
+  min-height: 0; /* required for flex overflow scrolling */
+  overflow-y: auto;
+  border: 1px solid #d0d9e4;
+  border-radius: 12px;
+  padding: 0.75rem;
+  background: #f8faff;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.chat-message {
+  display: flex;
+  max-width: 85%;
+}
+
+.chat-message--user {
+  align-self: flex-end;
+}
+
+.chat-message--model {
+  align-self: flex-start;
+}
+
+.chat-message__bubble {
+  padding: 0.6rem 0.9rem;
+  border-radius: 18px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.chat-message--user .chat-message__bubble {
+  background-color: #4a90e2;
+  color: #ffffff;
+  border-bottom-right-radius: 4px;
+}
+
+.chat-message--model .chat-message__bubble {
+  background-color: #ffffff;
+  color: #333333;
+  border: 1px solid #d0d9e4;
+  border-bottom-left-radius: 4px;
+}
+
+/* ── Status & controls ──────────────────────────────────────────────────────── */
+
+.study-status {
+  font-size: 0.85rem;
+  color: #666666;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.study-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding-bottom: 0.5rem;
+  flex-shrink: 0;
+}
+
+.study-btn {
+  padding: 0.55rem 1.1rem;
+  background-color: #e8f0fb;
+  color: #4a90e2;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 1px solid #b0c8f0;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.study-btn:hover {
+  background-color: #d0e4f9;
+}
+
+.study-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.study-mic-btn {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background-color: #4a90e2;
+  color: #ffffff;
+  font-size: 2rem;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(74, 144, 226, 0.5);
+  transition: background-color 0.2s, transform 0.15s, box-shadow 0.2s;
+  flex-shrink: 0;
+}
+
+.study-mic-btn:hover {
+  background-color: #357abd;
+  box-shadow: 0 6px 18px rgba(74, 144, 226, 0.6);
+}
+
+.study-mic-btn:active {
+  transform: scale(0.93);
+}
+
+.study-mic-btn:disabled {
+  background-color: #b0c8f0;
+  box-shadow: none;
+  cursor: default;
+}
+
+.study-mic-btn--active {
+  background-color: #e53935;
+  box-shadow: 0 4px 14px rgba(229, 57, 53, 0.5);
+  animation: mic-pulse 1.2s ease-in-out infinite;
+}
+
+.study-mic-btn--active:hover {
+  background-color: #c62828;
+}
+
+@keyframes mic-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+/* ── Study button on deck items ─────────────────────────────────────────────── */
+
+.deck-item__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.deck-item__study {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 4px 6px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+  text-decoration: none;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.deck-item__study:hover {
+  background-color: #e8f0fb;
+}

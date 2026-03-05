@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="eMemory – Study with AI" />
+    <meta name="theme-color" content="#4a90e2" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="stylesheet" href="style.css" />
+    <title>eMemory – Study</title>
+  </head>
+  <body>
+    <header>
+      <a href="trap.html" class="header-back-btn" aria-label="Back to Trap">←</a>
+      <h1>eMemory</h1>
+      <a href="settings.html" class="header-settings-btn" aria-label="Settings">⚙️</a>
+    </header>
+
+    <main class="study-main">
+
+      <div id="no-api-key-warning" class="study-warning" style="display:none">
+        ⚠️ No Gemini API key saved. Please add it in
+        <a href="settings.html">Settings</a>.
+      </div>
+
+      <div id="no-deck-warning" class="study-warning" style="display:none">
+        ⚠️ Deck not found. <a href="trap.html">Go back to Trap</a>.
+      </div>
+
+      <!-- Collapsible card context panel -->
+      <details id="card-panel" class="card-panel" open>
+        <summary class="card-panel__summary">
+          <span id="deck-name-display">Loading…</span>
+          <span class="card-panel__badge" id="card-progress"></span>
+        </summary>
+        <div class="card-panel__body">
+          <div class="card-field">
+            <span class="card-field__label">Front</span>
+            <p id="card-front" class="card-field__text"></p>
+          </div>
+          <div class="card-field">
+            <span class="card-field__label">Back</span>
+            <p id="card-back" class="card-field__text"></p>
+          </div>
+        </div>
+      </details>
+
+      <!-- Conversation history -->
+      <div
+        id="chat-container"
+        class="chat-container"
+        aria-live="polite"
+        aria-label="Conversation"
+      ></div>
+
+      <!-- Status indicator -->
+      <p id="status-text" class="study-status">Tap the microphone to start.</p>
+
+      <!-- Controls -->
+      <div class="study-controls">
+        <button
+          type="button"
+          id="next-card-btn"
+          class="study-btn"
+          aria-label="Go to next card"
+        >⏭ Next</button>
+
+        <button
+          type="button"
+          id="mic-btn"
+          class="study-mic-btn"
+          aria-label="Start voice input"
+        >🎙️</button>
+
+        <button
+          type="button"
+          id="stop-btn"
+          class="study-btn"
+          style="display:none"
+          aria-label="Stop AI speech"
+        >⏹ Stop</button>
+      </div>
+
+    </main>
+
+    <script src="app.js"></script>
+    <script src="study.js"></script>
+  </body>
+</html>

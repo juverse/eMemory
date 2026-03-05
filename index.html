@@ -36,8 +36,9 @@
 // ── IndexedDB helpers ─────────────────────────────────────────────────────────
 
 const DB_NAME = 'eMemory';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_DECKS = 'decks';
+const STORE_PROGRESS = 'progress';
 
 function openDB() {
   return new Promise((resolve, reject) => {
@@ -46,6 +47,9 @@ function openDB() {
       const db = event.target.result;
       if (!db.objectStoreNames.contains(STORE_DECKS)) {
         db.createObjectStore(STORE_DECKS, { keyPath: 'id', autoIncrement: true });
+      }
+      if (!db.objectStoreNames.contains(STORE_PROGRESS)) {
+        db.createObjectStore(STORE_PROGRESS, { keyPath: 'id' });
       }
     };
     request.onsuccess = () => resolve(request.result);
@@ -203,10 +207,10 @@ function renderDeckList(decks) {
     .map(
       (deck) => `
     <li class="deck-item" data-id="${deck.id}">
-      <div class="deck-item__info">
+      <a href="study.html?deck=${deck.id}" class="deck-item__info" aria-label="Study deck ${escapeHtml(deck.name)}">
         <span class="deck-item__name">${escapeHtml(deck.name)}</span>
         <span class="deck-item__count">${deck.cards.length} card${deck.cards.length !== 1 ? 's' : ''}</span>
-      </div>
+      </a>
       <button
         type="button"
         class="deck-item__delete"

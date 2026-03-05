@@ -31,8 +31,26 @@
           <small style="color:#888;font-weight:400;">Stored locally on this device only.</small>
         </label>
 
-        <button type="submit" class="settings-save-btn">Save</button>
-        <span class="settings-saved-msg" id="saved-msg" aria-live="polite">✓ Saved successfully!</span>
+        <label for="llm-provider">
+          LLM Provider
+          <select id="llm-provider" name="llm-provider">
+            <option value="google">Google</option>
+          </select>
+        </label>
+
+        <label for="llm-model">
+          LLM Model
+          <div class="settings-model-row">
+            <select id="llm-model" name="llm-model" disabled>
+              <option value="">— enter API key &amp; load models —</option>
+            </select>
+            <button type="button" id="fetch-models-btn" class="settings-fetch-btn">Load Models</button>
+          </div>
+          <small id="fetch-models-msg" class="settings-fetch-msg" aria-live="polite"></small>
+        </label>
+
+        <button type="submit" class="settings-save-btn">Save &amp; Test</button>
+        <span class="settings-saved-msg" id="saved-msg" aria-live="polite"></span>
       </form>
     </main>
 

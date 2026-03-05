@@ -76,9 +76,15 @@ footer {
   transition: color 0.2s;
 }
 
-.bottom-nav__item:hover,
+.bottom-nav__item:hover {
+  color: #4a90e2;
+}
+
 .bottom-nav__item.active {
   color: #4a90e2;
+  background-color: #e8f0fb;
+  border-radius: 12px;
+  font-weight: 600;
 }
 
 .bottom-nav__icon {

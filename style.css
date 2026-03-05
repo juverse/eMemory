@@ -101,3 +101,35 @@ footer {
 body {
   padding-bottom: var(--bottom-nav-height);
 }
+
+/* Floating action button */
+.fab {
+  position: fixed;
+  bottom: calc(var(--bottom-nav-height) + 16px);
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: #4a90e2;
+  color: #ffffff;
+  font-size: 1.75rem;
+  line-height: 1;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(74, 144, 226, 0.45);
+  z-index: 999;
+  transition: background-color 0.2s, transform 0.15s, box-shadow 0.2s;
+}
+
+.fab:hover {
+  background-color: #357abd;
+  box-shadow: 0 6px 16px rgba(74, 144, 226, 0.55);
+}
+
+.fab:active {
+  transform: scale(0.92);
+  box-shadow: 0 2px 8px rgba(74, 144, 226, 0.4);
+}

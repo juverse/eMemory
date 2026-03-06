@@ -440,7 +440,12 @@ function setupVoiceButton() {
   voiceBtn.addEventListener('click', () => {
     // Allow clicking to stop an active recording session
     if (appState.isListening) {
-      if (appState.recognition) appState.recognition.stop();
+      appState.isListening = false;
+      voiceBtn.classList.remove('study-voice-btn--listening');
+      voiceBtn.textContent = '🎤';
+      voiceBtn.setAttribute('aria-label', 'Press to speak');
+      setStatus('');
+      if (appState.recognition) appState.recognition.abort();
       return;
     }
 
@@ -449,6 +454,10 @@ function setupVoiceButton() {
     if (!appState.inputEnabled && !ttsPlaying) return;
 
     stopSpeaking();
+    // synth.cancel() does not reliably fire utterance.onend in all browsers,
+    // so ensure inputEnabled is true before starting recognition so that the
+    // recognition result will be accepted by handleUserMessage().
+    appState.inputEnabled = true;
 
     appState.isListening = true;
     voiceBtn.classList.add('study-voice-btn--listening');

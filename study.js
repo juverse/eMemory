@@ -200,18 +200,77 @@ async function sendToLLM(systemPrompt, history) {
 // ── Speech helpers ────────────────────────────────────────────────────────────
 
 const synth = window.speechSynthesis;
+const HUMAN_LIKE_VOICE_HINTS = ['neural', 'natural', 'google', 'siri', 'alexa', 'premium', 'enhanced'];
+let preferredVoice = null;
+
+function getPreferredVoice() {
+  if (!synth || typeof synth.getVoices !== 'function') return null;
+  const voices = synth.getVoices();
+  if (!voices || voices.length === 0) return null;
+
+  const userLang = (navigator.language || 'en-US').toLowerCase();
+  const userLangBase = userLang.split('-')[0];
+
+  preferredVoice = voices
+    .map((voice) => {
+      const name = (voice.name || '').toLowerCase();
+      const lang = (voice.lang || '').toLowerCase();
+      let score = 0;
+      if (lang === userLang) score += 5;
+      else if (lang.startsWith(userLangBase)) score += 3;
+      if (voice.localService) score += 1;
+      if (!voice.default) score += 1;
+      if (HUMAN_LIKE_VOICE_HINTS.some((hint) => name.includes(hint))) score += 2;
+      return { voice, score };
+    })
+    .sort((a, b) => b.score - a.score)[0]?.voice || voices[0];
+
+  return preferredVoice;
+}
+
+if (synth && typeof synth.addEventListener === 'function') {
+  synth.addEventListener('voiceschanged', () => {
+    getPreferredVoice();
+    updateSpeechControls();
+  });
+}
 
 function speak(text, onEnd) {
+  const cleanText = String(text || '').trim();
+  if (!cleanText) {
+    if (onEnd) onEnd();
+    return;
+  }
+
+  appState.lastSpokenText = cleanText;
+
   if (!synth) {
     if (onEnd) onEnd();
     return;
   }
+
   synth.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.rate = 1.0;
-  utterance.onend = () => { if (onEnd) onEnd(); };
-  utterance.onerror = () => { if (onEnd) onEnd(); };
+  appState.isSpeechPaused = false;
+
+  const utterance = new SpeechSynthesisUtterance(cleanText);
+  utterance.rate = 0.94;
+  utterance.pitch = 1.04;
+  utterance.volume = 1.0;
+  utterance.lang = navigator.language || 'en-US';
+  utterance.voice = preferredVoice || getPreferredVoice();
+
+  const finishSpeech = () => {
+    appState.isSpeechPaused = false;
+    updateSpeechControls();
+    if (onEnd) onEnd();
+  };
+  utterance.onend = finishSpeech;
+  utterance.onerror = finishSpeech;
+
   synth.speak(utterance);
+
+  updateSpeechControls();
+
   // Enable the voice button during TTS so the user can tap to interrupt
   if (SpeechRecognitionAPI) {
     const voiceBtn = document.getElementById('voice-btn');
@@ -224,6 +283,25 @@ function speak(text, onEnd) {
 
 function stopSpeaking() {
   if (synth) synth.cancel();
+  appState.isSpeechPaused = false;
+  updateSpeechControls();
+}
+
+function togglePauseContinueSpeaking() {
+  if (!synth) return;
+  if (synth.paused) {
+    synth.resume();
+    appState.isSpeechPaused = false;
+  } else if (synth.speaking) {
+    synth.pause();
+    appState.isSpeechPaused = true;
+  }
+  updateSpeechControls();
+}
+
+function repeatLastSpeech() {
+  if (!appState.lastSpokenText) return;
+  speak(appState.lastSpokenText);
 }
 
 const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -319,6 +397,32 @@ function setInputEnabled(enabled) {
     voiceBtn.classList.add('study-voice-btn--disabled');
     textInput.placeholder = 'Waiting…';
   }
+
+  updateSpeechControls();
+}
+
+function updateSpeechControls() {
+  const stopBtn = document.getElementById('speech-stop-btn');
+  const continueBtn = document.getElementById('speech-continue-btn');
+  const repeatBtn = document.getElementById('speech-repeat-btn');
+  if (!stopBtn || !continueBtn || !repeatBtn) return;
+
+  const speaking = Boolean(synth && synth.speaking);
+  const paused = Boolean(synth && synth.paused);
+
+  stopBtn.disabled = !(speaking || paused);
+  continueBtn.disabled = !(speaking || paused);
+  repeatBtn.disabled = !appState.lastSpokenText;
+
+  if (paused) {
+    continueBtn.textContent = '▶';
+    continueBtn.setAttribute('aria-label', 'Continue voice output');
+    continueBtn.title = 'Continue voice output';
+  } else {
+    continueBtn.textContent = '⏸';
+    continueBtn.setAttribute('aria-label', 'Pause voice output');
+    continueBtn.title = 'Pause voice output';
+  }
 }
 
 // ── Application state ─────────────────────────────────────────────────────────
@@ -331,7 +435,9 @@ const appState = {
   conversationHistory: [],
   systemPrompt: '',
   inputEnabled: false,
+  lastSpokenText: '',
   isListening: false,
+  isSpeechPaused: false,
   recognition: null
 };
 
@@ -450,7 +556,7 @@ function setupVoiceButton() {
     }
 
     // Allow clicking when input is enabled OR when TTS is playing (to interrupt it)
-    const ttsPlaying = synth && synth.speaking;
+    const ttsPlaying = synth && (synth.speaking || synth.paused);
     if (!appState.inputEnabled && !ttsPlaying) return;
 
     stopSpeaking();
@@ -509,6 +615,34 @@ function setupVoiceButton() {
       setStatus(`⚠️ Could not start recording: ${err.message}`);
     }
   });
+}
+
+function setupSpeechControls() {
+  const stopBtn = document.getElementById('speech-stop-btn');
+  const continueBtn = document.getElementById('speech-continue-btn');
+  const repeatBtn = document.getElementById('speech-repeat-btn');
+  if (!stopBtn || !continueBtn || !repeatBtn) return;
+
+  if (!synth) {
+    stopBtn.style.display = 'none';
+    continueBtn.style.display = 'none';
+    repeatBtn.style.display = 'none';
+    return;
+  }
+
+  stopBtn.addEventListener('click', () => {
+    stopSpeaking();
+  });
+
+  continueBtn.addEventListener('click', () => {
+    togglePauseContinueSpeaking();
+  });
+
+  repeatBtn.addEventListener('click', () => {
+    repeatLastSpeech();
+  });
+
+  updateSpeechControls();
 }
 
 // ── Done screen ───────────────────────────────────────────────────────────────
@@ -570,6 +704,7 @@ async function init() {
     updateProgressDisplay(0, dueCards.length);
 
     setupVoiceButton();
+    setupSpeechControls();
 
     const textInput = document.getElementById('text-input');
     const sendBtn = document.getElementById('send-btn');

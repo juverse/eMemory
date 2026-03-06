@@ -201,7 +201,10 @@ async function sendToLLM(systemPrompt, history) {
 
 const synth = window.speechSynthesis;
 const HUMAN_LIKE_VOICE_HINTS = ['neural', 'natural', 'google', 'siri', 'alexa', 'premium', 'enhanced'];
+const SPEECH_RATE_HUMANIZED = 0.94;
+const SPEECH_PITCH_HUMANIZED = 1.04;
 let preferredVoice = null;
+let preferredVoiceInitialized = false;
 
 function getPreferredVoice() {
   if (!synth || typeof synth.getVoices !== 'function') return null;
@@ -219,7 +222,6 @@ function getPreferredVoice() {
       if (lang === userLang) score += 5;
       else if (lang.startsWith(userLangBase)) score += 3;
       if (voice.localService) score += 1;
-      if (!voice.default) score += 1;
       if (HUMAN_LIKE_VOICE_HINTS.some((hint) => name.includes(hint))) score += 2;
       return { voice, score };
     })
@@ -230,9 +232,18 @@ function getPreferredVoice() {
 
 if (synth && typeof synth.addEventListener === 'function') {
   synth.addEventListener('voiceschanged', () => {
+    preferredVoiceInitialized = true;
     getPreferredVoice();
     updateSpeechControls();
   });
+}
+
+function ensurePreferredVoice() {
+  if (!preferredVoiceInitialized) {
+    preferredVoiceInitialized = true;
+    getPreferredVoice();
+  }
+  return preferredVoice;
 }
 
 function speak(text, onEnd) {
@@ -253,11 +264,11 @@ function speak(text, onEnd) {
   appState.isSpeechPaused = false;
 
   const utterance = new SpeechSynthesisUtterance(cleanText);
-  utterance.rate = 0.94;
-  utterance.pitch = 1.04;
+  utterance.rate = SPEECH_RATE_HUMANIZED;
+  utterance.pitch = SPEECH_PITCH_HUMANIZED;
   utterance.volume = 1.0;
   utterance.lang = navigator.language || 'en-US';
-  utterance.voice = preferredVoice || getPreferredVoice();
+  utterance.voice = preferredVoice || ensurePreferredVoice();
 
   const finishSpeech = () => {
     appState.isSpeechPaused = false;
@@ -289,7 +300,7 @@ function stopSpeaking() {
 
 function togglePauseContinueSpeaking() {
   if (!synth) return;
-  if (synth.paused) {
+  if (appState.isSpeechPaused && synth.paused && synth.speaking) {
     synth.resume();
     appState.isSpeechPaused = false;
   } else if (synth.speaking) {
@@ -402,16 +413,16 @@ function setInputEnabled(enabled) {
 }
 
 function updateSpeechControls() {
-  const stopBtn = document.getElementById('speech-stop-btn');
-  const continueBtn = document.getElementById('speech-continue-btn');
-  const repeatBtn = document.getElementById('speech-repeat-btn');
+  const stopBtn = appState.speechControls.stopBtn;
+  const continueBtn = appState.speechControls.continueBtn;
+  const repeatBtn = appState.speechControls.repeatBtn;
   if (!stopBtn || !continueBtn || !repeatBtn) return;
 
   const speaking = Boolean(synth && synth.speaking);
-  const paused = Boolean(synth && synth.paused);
+  const paused = Boolean(synth && speaking && appState.isSpeechPaused && synth.paused);
 
-  stopBtn.disabled = !(speaking || paused);
-  continueBtn.disabled = !(speaking || paused);
+  stopBtn.disabled = !speaking;
+  continueBtn.disabled = !speaking;
   repeatBtn.disabled = !appState.lastSpokenText;
 
   if (paused) {
@@ -438,6 +449,11 @@ const appState = {
   lastSpokenText: '',
   isListening: false,
   isSpeechPaused: false,
+  speechControls: {
+    stopBtn: null,
+    continueBtn: null,
+    repeatBtn: null
+  },
   recognition: null
 };
 
@@ -556,7 +572,7 @@ function setupVoiceButton() {
     }
 
     // Allow clicking when input is enabled OR when TTS is playing (to interrupt it)
-    const ttsPlaying = synth && (synth.speaking || synth.paused);
+    const ttsPlaying = synth && synth.speaking;
     if (!appState.inputEnabled && !ttsPlaying) return;
 
     stopSpeaking();
@@ -622,6 +638,9 @@ function setupSpeechControls() {
   const continueBtn = document.getElementById('speech-continue-btn');
   const repeatBtn = document.getElementById('speech-repeat-btn');
   if (!stopBtn || !continueBtn || !repeatBtn) return;
+  appState.speechControls.stopBtn = stopBtn;
+  appState.speechControls.continueBtn = continueBtn;
+  appState.speechControls.repeatBtn = repeatBtn;
 
   if (!synth) {
     stopBtn.style.display = 'none';

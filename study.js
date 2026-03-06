@@ -200,18 +200,88 @@ async function sendToLLM(systemPrompt, history) {
 // ── Speech helpers ────────────────────────────────────────────────────────────
 
 const synth = window.speechSynthesis;
+const HUMAN_LIKE_VOICE_HINTS = ['neural', 'natural', 'google', 'siri', 'alexa', 'premium', 'enhanced'];
+const SPEECH_RATE_HUMANIZED = 0.94;
+const SPEECH_PITCH_HUMANIZED = 1.04;
+let preferredVoice = null;
+let preferredVoiceInitialized = false;
+
+function getPreferredVoice() {
+  if (!synth || typeof synth.getVoices !== 'function') return null;
+  const voices = synth.getVoices();
+  if (!voices || voices.length === 0) return null;
+
+  const userLang = (navigator.language || 'en-US').toLowerCase();
+  const userLangBase = userLang.split('-')[0];
+
+  preferredVoice = voices
+    .map((voice) => {
+      const name = (voice.name || '').toLowerCase();
+      const lang = (voice.lang || '').toLowerCase();
+      let score = 0;
+      if (lang === userLang) score += 5;
+      else if (lang.startsWith(userLangBase)) score += 3;
+      if (voice.localService) score += 1;
+      if (HUMAN_LIKE_VOICE_HINTS.some((hint) => name.includes(hint))) score += 2;
+      return { voice, score };
+    })
+    .sort((a, b) => b.score - a.score)[0]?.voice || voices[0];
+
+  return preferredVoice;
+}
+
+if (synth && typeof synth.addEventListener === 'function') {
+  synth.addEventListener('voiceschanged', () => {
+    preferredVoiceInitialized = true;
+    getPreferredVoice();
+    updateSpeechControls();
+  });
+}
+
+function ensurePreferredVoice() {
+  if (!preferredVoiceInitialized) {
+    preferredVoiceInitialized = true;
+    getPreferredVoice();
+  }
+  return preferredVoice;
+}
 
 function speak(text, onEnd) {
+  const cleanText = String(text || '').trim();
+  if (!cleanText) {
+    if (onEnd) onEnd();
+    return;
+  }
+
+  appState.lastSpokenText = cleanText;
+
   if (!synth) {
     if (onEnd) onEnd();
     return;
   }
+
   synth.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.rate = 1.0;
-  utterance.onend = () => { if (onEnd) onEnd(); };
-  utterance.onerror = () => { if (onEnd) onEnd(); };
+  appState.isSpeechPaused = false;
+
+  const utterance = new SpeechSynthesisUtterance(cleanText);
+  utterance.rate = SPEECH_RATE_HUMANIZED;
+  utterance.pitch = SPEECH_PITCH_HUMANIZED;
+  utterance.volume = 1.0;
+  utterance.lang = navigator.language || 'en-US';
+  utterance.voice = preferredVoice || ensurePreferredVoice();
+
+  const finishSpeech = () => {
+    appState.isSpeechPaused = false;
+    updateSpeechControls();
+    if (onEnd) onEnd();
+  };
+  utterance.onend = finishSpeech;
+  utterance.onerror = finishSpeech;
+
   synth.speak(utterance);
+
+  updateSpeechControls();
+
   // Enable the voice button during TTS so the user can tap to interrupt
   if (SpeechRecognitionAPI) {
     const voiceBtn = document.getElementById('voice-btn');
@@ -224,6 +294,25 @@ function speak(text, onEnd) {
 
 function stopSpeaking() {
   if (synth) synth.cancel();
+  appState.isSpeechPaused = false;
+  updateSpeechControls();
+}
+
+function togglePauseContinueSpeaking() {
+  if (!synth) return;
+  if (appState.isSpeechPaused && synth.paused && synth.speaking) {
+    synth.resume();
+    appState.isSpeechPaused = false;
+  } else if (synth.speaking) {
+    synth.pause();
+    appState.isSpeechPaused = true;
+  }
+  updateSpeechControls();
+}
+
+function repeatLastSpeech() {
+  if (!appState.lastSpokenText) return;
+  speak(appState.lastSpokenText);
 }
 
 const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -319,6 +408,32 @@ function setInputEnabled(enabled) {
     voiceBtn.classList.add('study-voice-btn--disabled');
     textInput.placeholder = 'Waiting…';
   }
+
+  updateSpeechControls();
+}
+
+function updateSpeechControls() {
+  const stopBtn = appState.speechControls.stopBtn;
+  const continueBtn = appState.speechControls.continueBtn;
+  const repeatBtn = appState.speechControls.repeatBtn;
+  if (!stopBtn || !continueBtn || !repeatBtn) return;
+
+  const speaking = Boolean(synth && synth.speaking);
+  const paused = Boolean(synth && speaking && appState.isSpeechPaused && synth.paused);
+
+  stopBtn.disabled = !speaking;
+  continueBtn.disabled = !speaking;
+  repeatBtn.disabled = !appState.lastSpokenText;
+
+  if (paused) {
+    continueBtn.textContent = '▶';
+    continueBtn.setAttribute('aria-label', 'Continue voice output');
+    continueBtn.title = 'Continue voice output';
+  } else {
+    continueBtn.textContent = '⏸';
+    continueBtn.setAttribute('aria-label', 'Pause voice output');
+    continueBtn.title = 'Pause voice output';
+  }
 }
 
 // ── Application state ─────────────────────────────────────────────────────────
@@ -331,7 +446,14 @@ const appState = {
   conversationHistory: [],
   systemPrompt: '',
   inputEnabled: false,
+  lastSpokenText: '',
   isListening: false,
+  isSpeechPaused: false,
+  speechControls: {
+    stopBtn: null,
+    continueBtn: null,
+    repeatBtn: null
+  },
   recognition: null
 };
 
@@ -511,6 +633,37 @@ function setupVoiceButton() {
   });
 }
 
+function setupSpeechControls() {
+  const stopBtn = document.getElementById('speech-stop-btn');
+  const continueBtn = document.getElementById('speech-continue-btn');
+  const repeatBtn = document.getElementById('speech-repeat-btn');
+  if (!stopBtn || !continueBtn || !repeatBtn) return;
+  appState.speechControls.stopBtn = stopBtn;
+  appState.speechControls.continueBtn = continueBtn;
+  appState.speechControls.repeatBtn = repeatBtn;
+
+  if (!synth) {
+    stopBtn.style.display = 'none';
+    continueBtn.style.display = 'none';
+    repeatBtn.style.display = 'none';
+    return;
+  }
+
+  stopBtn.addEventListener('click', () => {
+    stopSpeaking();
+  });
+
+  continueBtn.addEventListener('click', () => {
+    togglePauseContinueSpeaking();
+  });
+
+  repeatBtn.addEventListener('click', () => {
+    repeatLastSpeech();
+  });
+
+  updateSpeechControls();
+}
+
 // ── Done screen ───────────────────────────────────────────────────────────────
 
 function showDone() {
@@ -570,6 +723,7 @@ async function init() {
     updateProgressDisplay(0, dueCards.length);
 
     setupVoiceButton();
+    setupSpeechControls();
 
     const textInput = document.getElementById('text-input');
     const sendBtn = document.getElementById('send-btn');

@@ -455,9 +455,9 @@ function setupVoiceButton() {
 
     stopSpeaking();
     // synth.cancel() does not reliably fire utterance.onend in all browsers,
-    // so ensure inputEnabled is true before starting recognition so that the
-    // recognition result will be accepted by handleUserMessage().
-    appState.inputEnabled = true;
+    // so ensure input is fully enabled before starting recognition so that
+    // interim/final text is visible and handleUserMessage() accepts results.
+    setInputEnabled(true);
 
     appState.isListening = true;
     voiceBtn.classList.add('study-voice-btn--listening');
